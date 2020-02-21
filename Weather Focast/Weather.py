@@ -11,6 +11,13 @@ import time
 import requests
 import json
 
+from pyowm import OWM
+from pyowm.utils import geo
+from pyowm.alertapi30.enums import WeatherParametersEnum
+from pyowm.alertapi30.trigger import Trigger
+from pyowm.alertapi30.alert import Alert
+
+
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib import colors
@@ -38,6 +45,7 @@ def get_api_key():
 #threads.append(m)
 #m.start
 
+#Get current weather
 def get_weather_record():
     city = input ('Enter your city:')
     
@@ -60,31 +68,52 @@ def get_weather_record():
     print('Latitude : {}'.format(latitude))
     print('Longitude : {}'.format(longitude))
     print('Description : {}'.format(description))
+    
+#Download 5 days/ 3 h forecast weather
 def download_forecast(api_key,city):
     url2='http://api.openweathermap.org/data/2.5/forecast?q={}&appid={}&units=imperial'.format(city,api_key)
     res=requests.get(url2)
     print(url2)
     return res.json()
 
+#Download weathermap
 def load_map(api_key,x,y):
     url='https://tile.openweathermap.org/map/{}/{}/{}/{}.png?appid={}'.format('temp_new',10,x,y,api_key)
     print(url)
     res=requests.get(url)
     return res
-    
-    
-def plot_weather():
-    fig=plt.figure(figsize=(15,7))
-    custom_collor=["#ffffe5","#f7fcb9","#d9f0a3","#addd8e","#78c679","#41ab5d","#238443","#006837","#004529"]
-    custom_cmap = colors.ListedColormap(custom_color)
-    custom_cmap.set_over((0.,0.,1.,0))
-    custom_cmap.set_under((0.,0.,1.,0))
-    
-    plt.imshow(ndvi)
 
-def show_forecast(d):
-    d.get('forecast')
+#gerenerate weather alert
+def weather_alert(location,api_key):
+    owm = OWM(API_Key=api_key)
+    am = owm.alert_manager()
     
+
+    reg = owm.city_id_registry()
+    geoms = reg.geopoints_for(location)
+    
+    # ... also, add to Location class a .to_geopoint() method that returns a geo.Point instance
+    
+    
+    # condition
+    condition_1 = alerting.Condition('TEMPERATURE', 'LESS_THAN', 2)  # kelvin
+    condition_2 = alerting.Condition('RAIN','EQUAL', 80)                   # clouds % coverage
+    condition_3 = alerting.Condition('SNOW','EQUAL',50)
+     
+    # triggers
+    trigger = am.create_trigger(start_ts=1234567890, end_ts=1278654300, conditions=[condition_1, condition_2,condition_3], area=[geoms], alert_channel=AlertChannelsEnum.OWM_API)
+    triggers_list = am.get_triggers()
+    
+    
+    alerts_list = trigger.get_alerts()
+    alerts_list = trigger.get_alerts_since('2020-02-20T23:07:24Z')  # useful for polling alerts
+    alerts_list = trigger.get_alerts_on(WeatherParametersEnum.TEMPERATURE)
+    alert = trigger.get_alert('alert_id')
+    
+    am.delete_all_alerts_for(trigger)
+    am.delete_alert_for(trigger, alert)
+
+  
     
 def main():
     location=input("Enter your city: ")
@@ -98,6 +127,7 @@ def main():
     x=data['city']['coord']['lat']
     y=data['city']['coord']['lon']
     date=data['list'][0]['dt']
+    #weather_alert(location,api_key)
     m=load_map(api_key,int(x),int(y))
     print(temp,w,description,icon,data)
     icon=plt.imread('http://openweathermap.org/img/wn/{}@2x.png'.format(icon))
