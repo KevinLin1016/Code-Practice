@@ -180,7 +180,7 @@ def connect_nodes(e,ne,n):
     #sort the new edges by cost
     #if an edge is not part of the minimum spanning tree, then include it, else continue
     Tcost=0
-    for v1,v2,cost in sorted(ne, key=lambda x:x[2]):
+    for v1,v2,cost in sorted(ne, key=lambda x:x[2]):#排序，greedy algorithm
         if find(v1)!=find(v2):
             union(v1,v2)
             Tcost+=cost
